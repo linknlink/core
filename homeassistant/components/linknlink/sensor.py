@@ -1,4 +1,4 @@
-"""Sensor platform for LinknLink."""
+"""Distance sensors for LinknLink eMotion Ultra2 target positions."""
 
 from typing import override
 
@@ -8,91 +8,31 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import (
-    LIGHT_LUX,
-    PERCENTAGE,
-    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
-    EntityCategory,
-    UnitOfTemperature,
-)
-from homeassistant.core import HomeAssistant
+from homeassistant.const import UnitOfLength
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .coordinator import LinknLinkConfigEntry, LinknLinkCoordinator
+from .coordinator import LinknLinkConfigEntry
 from .entity import LinknLinkEntity
 
 PARALLEL_UPDATES = 0
 
-SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+POSITION_SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
-        key="envtemp",
-        translation_key="temperature",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        suggested_display_precision=1,
+        key="nearest_horizontal_distance",
+        translation_key="nearest_horizontal_distance",
+        device_class=SensorDeviceClass.DISTANCE,
+        native_unit_of_measurement=UnitOfLength.METERS,
+        suggested_display_precision=2,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
-        key="envhumid",
-        translation_key="humidity",
-        device_class=SensorDeviceClass.HUMIDITY,
-        native_unit_of_measurement=PERCENTAGE,
-        suggested_display_precision=1,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="envlux",
-        translation_key="illuminance",
-        device_class=SensorDeviceClass.ILLUMINANCE,
-        native_unit_of_measurement=LIGHT_LUX,
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="target_count",
-        translation_key="target_count",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="persons_in_fenced_zones",
-        translation_key="persons_in_fenced_zones",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="zone_1_target_counts",
-        translation_key="zone_1_target_count",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="zone_2_target_counts",
-        translation_key="zone_2_target_count",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="zone_3_target_counts",
-        translation_key="zone_3_target_count",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="zone_4_target_counts",
-        translation_key="zone_4_target_count",
-        suggested_display_precision=0,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="wifi_rssi",
-        translation_key="wifi_rssi",
-        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
-        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-        suggested_display_precision=0,
+        key="nearest_distance",
+        translation_key="nearest_distance",
+        device_class=SensorDeviceClass.DISTANCE,
+        native_unit_of_measurement=UnitOfLength.METERS,
+        suggested_display_precision=2,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 )
@@ -103,41 +43,52 @@ async def async_setup_entry(
     entry: LinknLinkConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up LinknLink sensors."""
-    coordinator = entry.runtime_data
-    entities: list[LinknLinkSensor] = [
-        LinknLinkSensor(coordinator, description)
-        for description in SENSOR_DESCRIPTIONS
-        if description.key in coordinator.data.values
-    ]
-    entities.extend(
-        LinknLinkSensor(coordinator, description, subdevice_id)
-        for subdevice_id, child in coordinator.data.children.items()
-        for description in SENSOR_DESCRIPTIONS
-        if description.key in child.fields
+    """Set up Ultra2 position distance sensors."""
+    async_add_entities(
+        LinknLinkPositionSensor(entry.runtime_data, description)
+        for description in POSITION_SENSOR_DESCRIPTIONS
     )
-    async_add_entities(entities)
 
 
-class LinknLinkSensor(LinknLinkEntity, SensorEntity):
-    """Representation of a LinknLink sensor."""
+class LinknLinkPositionSensor(LinknLinkEntity, SensorEntity):
+    """Representation of an Ultra2 nearest-target distance."""
 
     entity_description: SensorEntityDescription
 
-    def __init__(
-        self,
-        coordinator: LinknLinkCoordinator,
-        description: SensorEntityDescription,
-        subdevice_id: str | None = None,
-    ) -> None:
-        """Initialize a LinknLink sensor."""
-        super().__init__(coordinator, description, subdevice_id)
+    @property
+    @override
+    def available(self) -> bool:
+        """Return whether a fresh target position is available."""
+        state = self.coordinator.position_state
+        return (
+            state is not None
+            and not state.stale
+            and state.latest_update is not None
+            and self.native_value is not None
+        )
 
     @property
     @override
     def native_value(self) -> StateType:
-        """Return the sensor value."""
-        value = self.source_value
-        if value is None or isinstance(value, (bool, str, int, float)):
-            return value
-        return str(value)
+        """Return the nearest target distance in meters."""
+        state = self.coordinator.position_state
+        if state is None or state.latest_update is None:
+            return None
+        if self.entity_description.key == "nearest_horizontal_distance":
+            return state.latest_update.nearest_horizontal_distance
+        return state.latest_update.nearest_distance
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to high-frequency position updates."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_position_listener(
+                self._async_handle_position_update
+            )
+        )
+
+    @callback
+    def _async_handle_position_update(self, _: object) -> None:
+        """Write a new distance or expiry state."""
+        self.async_write_ha_state()

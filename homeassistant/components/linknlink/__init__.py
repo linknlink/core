@@ -1,6 +1,6 @@
 """The LinknLink integration."""
 
-from aiolinknlink import DISPLAY_MODEL_ULTRA, UltraClient, UltraDevice
+from aiolinknlink import DISPLAY_MODEL_ULTRA2, UltraClient, UltraDevice
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
@@ -9,7 +9,12 @@ from homeassistant.helpers import device_registry as dr
 from .const import DEFAULT_PORT, DOMAIN
 from .coordinator import LinknLinkConfigEntry, LinknLinkCoordinator
 
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.EVENT,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: LinknLinkConfigEntry) -> bool:
@@ -22,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LinknLinkConfigEntry) ->
         port=port,
         mac=entry.data[CONF_MAC],
         name=entry.title,
-        model=DISPLAY_MODEL_ULTRA,
+        model=DISPLAY_MODEL_ULTRA2,
     )
     client = UltraClient(default_port=port)
     coordinator = LinknLinkCoordinator(hass, entry, client, device)

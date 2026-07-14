@@ -53,7 +53,7 @@ class LinknLinkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(mac)
                 self._abort_if_unique_id_configured(
                     updates={
-                        CONF_HOST: host,
+                        CONF_HOST: session.device.ip,
                         CONF_MAC: mac,
                         CONF_PORT: port,
                     }
@@ -61,7 +61,7 @@ class LinknLinkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=session.device.model,
                     data={
-                        CONF_HOST: host,
+                        CONF_HOST: session.device.ip,
                         CONF_MAC: mac,
                         CONF_PORT: port,
                     },
@@ -98,7 +98,7 @@ class LinknLinkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_update_reload_and_abort(
                     entry,
                     data_updates={
-                        CONF_HOST: host,
+                        CONF_HOST: session.device.ip,
                         CONF_MAC: mac,
                         CONF_PORT: session.device.port or DEFAULT_PORT,
                     },

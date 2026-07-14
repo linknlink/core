@@ -1,21 +1,24 @@
 """Fixtures for LinknLink tests."""
 
 from collections.abc import Generator
-from unittest.mock import AsyncMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiolinknlink import (
     DISPLAY_MODEL_ULTRA2,
     TYPE_ULTRA2,
     UltraDevice,
+    UltraPositionSubscriptionState,
+    UltraPositionUpdate,
+    UltraRadarStatus,
+    UltraRadarZRange,
     UltraSession,
-    UltraState,
-    UltraSubDeviceState,
+    UltraTargetPosition,
 )
 import pytest
 
 from homeassistant.components.linknlink.const import DOMAIN
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
-from homeassistant.util import dt as dt_util
 
 from tests.common import MockConfigEntry
 
@@ -37,39 +40,30 @@ SESSION = UltraSession(
     session_key=b"0123456789abcdef",
     auth_status="ok",
 )
-STATE = UltraState(
-    device_id=MAC,
-    online=True,
-    values={
-        "detect_position": '[{"x":0.3,"y":0.4,"z":1.2}]',
-        "distance": 50,
-        "envhumid": 45,
-        "envlux": 120,
-        "envtemp": 23.5,
-        "persons_in_fenced_zones": 1,
-        "pir_detected": True,
-        "presence": True,
-        "target_count": 1,
-        "target_distance": 130,
-        "wifi_rssi": -42,
-        "zone_1_presence": False,
-        "zone_1_target_counts": 0,
-        "zone_2_presence": True,
-        "zone_2_target_counts": 1,
-        "zone_3_presence": False,
-        "zone_3_target_counts": 0,
-        "zone_4_presence": False,
-        "zone_4_target_counts": 0,
-    },
-    children={
-        "radar-1": UltraSubDeviceState(
-            did="radar-1",
-            name="Radar",
-            type="Presence sensor",
-            fields={"envtemp": 24.0, "presence": True, "power": True},
-        )
-    },
-    updated_at=dt_util.utcnow(),
+POSITION_UPDATE = UltraPositionUpdate(
+    source_ip=HOST,
+    targets=(UltraTargetPosition(x=0.3, y=0.4, z=1.2),),
+    received_at=datetime(2026, 7, 14, 12, tzinfo=UTC),
+)
+POSITION_STATE = UltraPositionSubscriptionState(
+    subscribed=True,
+    stale=False,
+    local_port=25826,
+    confirmation_count=1,
+    latest_update=POSITION_UPDATE,
+    last_subscribed_at=datetime(2026, 7, 14, 11, 59, tzinfo=UTC),
+)
+RADAR_STATUS = UltraRadarStatus(
+    did="e04b410167bbdbac00000000dbac0001",
+    sensitivity=2,
+    received_at=datetime(2026, 7, 14, 11, 59, tzinfo=UTC),
+    trigger_speed=1,
+    install_mode=0,
+    height=240,
+    install_direction=1,
+    z_range=UltraRadarZRange(minimum=-2.0, maximum=2.0),
+    default_absence_delay=60,
+    zone_absence_delays=(60, 90, 120, 180),
 )
 
 
@@ -89,8 +83,32 @@ def mock_linknlink_client() -> Generator[AsyncMock]:
         client = client_class.return_value
         client.discover_host.return_value = DEVICE
         client.connect.return_value = SESSION
-        client.refresh.return_value = STATE
         yield client
+
+
+@pytest.fixture(autouse=True)
+def mock_position_subscription() -> Generator[tuple[MagicMock, MagicMock]]:
+    """Mock the aiolinknlink local UDP subscription."""
+    with patch(
+        "homeassistant.components.linknlink.coordinator.UltraPositionSubscription",
+        autospec=True,
+    ) as subscription_class:
+        subscription = subscription_class.return_value
+        subscription.state = POSITION_STATE
+        subscription.start = AsyncMock()
+        subscription.stop = AsyncMock()
+        subscription.get_radar_status = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_sensitivity = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_trigger_speed = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_install_mode = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_height = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_install_direction = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_z_range = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_default_absence_delay = AsyncMock(
+            return_value=RADAR_STATUS
+        )
+        subscription.set_radar_zone_absence_delay = AsyncMock(return_value=RADAR_STATUS)
+        yield subscription_class, subscription
 
 
 @pytest.fixture

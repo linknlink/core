@@ -3,7 +3,9 @@ rules:
   action-setup:
     status: exempt
     comment: The integration does not provide custom actions.
-  appropriate-polling: done
+  appropriate-polling:
+    status: exempt
+    comment: The integration uses a local push subscription and does not poll.
   brands: done
   common-modules: done
   config-flow-test-coverage: done
@@ -21,9 +23,7 @@ rules:
   docs-triggers:
     status: exempt
     comment: The integration does not provide custom triggers.
-  entity-event-setup:
-    status: exempt
-    comment: Entities do not explicitly subscribe to events.
+  entity-event-setup: done
   entity-unique-id: done
   has-entity-name: done
   runtime-data: done
@@ -64,7 +64,9 @@ rules:
   dynamic-devices: todo
   entity-category: done
   entity-device-class: done
-  entity-disabled-by-default: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: The integration does not create noisy or diagnostic entities.
   entity-translations: done
   exception-translations: done
   icon-translations:

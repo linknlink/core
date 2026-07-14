@@ -13,21 +13,13 @@ TO_REDACT = {
     CONF_HOST,
     CONF_MAC,
     CONF_UNIQUE_ID,
-    "URL",
-    "account",
-    "connected_ssid",
-    "detect_position",
-    "dev_ip",
-    "device_id",
     "did",
     "id",
     "ip",
+    "last_error",
     "mac",
-    "mqtt_broker",
-    "mqtt_password",
-    "mqtt_username",
-    "password",
-    "ssid",
+    "source_ip",
+    "targets",
 }
 
 
@@ -35,12 +27,32 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: LinknLinkConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a LinknLink config entry."""
-    coordinator = entry.runtime_data
+    coordinator = getattr(entry, "runtime_data", None)
+    if coordinator is None:
+        return async_redact_data(
+            {
+                "config_entry": entry.as_dict(),
+                "device": None,
+                "position_subscription": None,
+                "radar_status": None,
+                "last_update_success": False,
+            },
+            TO_REDACT,
+        )
     return async_redact_data(
         {
             "config_entry": entry.as_dict(),
             "device": asdict(coordinator.device),
-            "state": asdict(coordinator.data),
+            "position_subscription": (
+                asdict(coordinator.position_state)
+                if coordinator.position_state is not None
+                else None
+            ),
+            "radar_status": (
+                asdict(coordinator.radar_status)
+                if coordinator.radar_status is not None
+                else None
+            ),
             "last_update_success": coordinator.last_update_success,
         },
         TO_REDACT,

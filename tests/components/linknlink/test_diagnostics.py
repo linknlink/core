@@ -1,5 +1,6 @@
 """Tests for LinknLink diagnostics."""
 
+from dataclasses import replace
 from unittest.mock import AsyncMock
 
 from homeassistant.components.linknlink.diagnostics import (
@@ -8,8 +9,28 @@ from homeassistant.components.linknlink.diagnostics import (
 from homeassistant.core import HomeAssistant
 
 from . import setup_integration
+from .conftest import POSITION_STATE
 
 from tests.common import MockConfigEntry
+
+
+async def test_diagnostics_while_setup_is_pending(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test diagnostics before the coordinator has been assigned."""
+    mock_config_entry.add_to_hass(hass)
+
+    result = await async_get_config_entry_diagnostics(
+        hass,
+        mock_config_entry,  # type: ignore[arg-type]
+    )
+
+    assert result["config_entry"]["data"]["host"] == "**REDACTED**"
+    assert result["device"] is None
+    assert result["position_subscription"] is None
+    assert result["radar_status"] is None
+    assert result["last_update_success"] is False
 
 
 async def test_diagnostics_are_redacted(
@@ -19,6 +40,10 @@ async def test_diagnostics_are_redacted(
 ) -> None:
     """Test that diagnostics do not expose device identifiers or private data."""
     await setup_integration(hass, mock_config_entry)
+    mock_config_entry.runtime_data.position_state = replace(
+        POSITION_STATE,
+        last_error="timeout waiting for 192.168.3.159:80",
+    )
 
     result = await async_get_config_entry_diagnostics(
         hass,
@@ -30,4 +55,9 @@ async def test_diagnostics_are_redacted(
     assert result["config_entry"]["unique_id"] == "**REDACTED**"
     assert result["device"]["ip"] == "**REDACTED**"
     assert result["device"]["mac"] == "**REDACTED**"
-    assert result["state"]["values"]["detect_position"] == "**REDACTED**"
+    assert result["radar_status"]["did"] == "**REDACTED**"
+    position = result["position_subscription"]["latest_update"]
+    assert position["source_ip"] == "**REDACTED**"
+    assert position["targets"] == "**REDACTED**"
+    assert result["position_subscription"]["last_error"] == "**REDACTED**"
+    assert result["radar_status"]["sensitivity"] == 2

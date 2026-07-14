@@ -3879,7 +3879,7 @@
       "name": "LinknLink",
       "integration_type": "device",
       "config_flow": true,
-      "iot_class": "local_polling"
+      "iot_class": "local_push"
     },
     "linkplay": {
       "name": "LinkPlay",
