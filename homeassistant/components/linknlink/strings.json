@@ -1,0 +1,64 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]",
+      "wrong_device": "The device at this address does not match the configured LinknLink device."
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "step": {
+      "reconfigure": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]"
+        },
+        "data_description": {
+          "host": "The new IP address or hostname of the eMotion Ultra2 device."
+        },
+        "description": "Update the network address for {device_name}."
+      },
+      "user": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]"
+        },
+        "data_description": {
+          "host": "The IP address or hostname of the eMotion Ultra2 device."
+        },
+        "description": "The device must already be connected to Wi-Fi and be reachable from Home Assistant on the same local network."
+      }
+    }
+  },
+  "entity": {
+    "event": {
+      "target_position": {
+        "name": "Target position",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "position_update": "Position update"
+            }
+          },
+          "nearest_distance": {
+            "name": "Nearest 3D distance"
+          },
+          "nearest_horizontal_distance": {
+            "name": "Nearest horizontal distance"
+          },
+          "target_count": {
+            "name": "Target count"
+          },
+          "targets": {
+            "name": "Targets"
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "update_error": {
+      "message": "Error communicating with the LinknLink device: {error}"
+    }
+  }
+}
