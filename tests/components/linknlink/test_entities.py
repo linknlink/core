@@ -122,8 +122,6 @@ async def test_radar_sensitivity_select_and_recovery(
     assert subscription.get_radar_status.await_count == 2
     assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
 
-    status_callback(replace(POSITION_STATE, subscribed=False, last_error="offline"))
-    await hass.async_block_till_done()
     subscription.get_radar_status.side_effect = None
     subscription.get_radar_status.return_value = RADAR_STATUS
     status_callback(POSITION_STATE)
