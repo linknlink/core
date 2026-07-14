@@ -62,6 +62,7 @@ class LinknLinkPositionSensor(LinknLinkEntity, SensorEntity):
         state = self.coordinator.position_state
         return (
             state is not None
+            and state.subscribed
             and not state.stale
             and state.latest_update is not None
             and self.native_value is not None
