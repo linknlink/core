@@ -48,3 +48,16 @@ async def test_setup_retries_when_device_is_unavailable(
     await setup_integration(hass, mock_config_entry)
 
     assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_setup_retries_when_first_refresh_fails(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test setup retry when the first state refresh fails."""
+    mock_linknlink_client.refresh.side_effect = UltraConnectionError("offline")
+
+    await setup_integration(hass, mock_config_entry)
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY

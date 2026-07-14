@@ -13,7 +13,6 @@ from homeassistant.const import (
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
-    UnitOfLength,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
@@ -31,6 +30,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         translation_key="temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        suggested_display_precision=1,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -38,6 +38,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         translation_key="humidity",
         device_class=SensorDeviceClass.HUMIDITY,
         native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -45,35 +46,44 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         translation_key="illuminance",
         device_class=SensorDeviceClass.ILLUMINANCE,
         native_unit_of_measurement=LIGHT_LUX,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="distance",
-        translation_key="distance",
-        device_class=SensorDeviceClass.DISTANCE,
-        native_unit_of_measurement=UnitOfLength.CENTIMETERS,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="target_distance",
-        translation_key="target_distance",
-        device_class=SensorDeviceClass.DISTANCE,
-        native_unit_of_measurement=UnitOfLength.CENTIMETERS,
+        suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="target_count",
         translation_key="target_count",
+        suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="persons_in_fenced_zones",
         translation_key="persons_in_fenced_zones",
+        suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
-        key="detect_position",
-        translation_key="detect_position",
+        key="zone_1_target_counts",
+        translation_key="zone_1_target_count",
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="zone_2_target_counts",
+        translation_key="zone_2_target_count",
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="zone_3_target_counts",
+        translation_key="zone_3_target_count",
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="zone_4_target_counts",
+        translation_key="zone_4_target_count",
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="wifi_rssi",
@@ -82,6 +92,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
+        suggested_display_precision=0,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 )

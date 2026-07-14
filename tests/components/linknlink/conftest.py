@@ -3,7 +3,14 @@
 from collections.abc import Generator
 from unittest.mock import AsyncMock, patch
 
-from aiolinknlink import UltraDevice, UltraSession, UltraState, UltraSubDeviceState
+from aiolinknlink import (
+    DISPLAY_MODEL_ULTRA2,
+    TYPE_ULTRA2,
+    UltraDevice,
+    UltraSession,
+    UltraState,
+    UltraSubDeviceState,
+)
 import pytest
 
 from homeassistant.components.linknlink.const import DOMAIN
@@ -21,8 +28,9 @@ DEVICE = UltraDevice(
     ip=HOST,
     port=PORT,
     mac=MAC,
-    name="eMotion Ultra",
-    model="eMotion Ultra",
+    type_id=TYPE_ULTRA2,
+    name=DISPLAY_MODEL_ULTRA2,
+    model=DISPLAY_MODEL_ULTRA2,
 )
 SESSION = UltraSession(
     device=DEVICE,
@@ -44,13 +52,21 @@ STATE = UltraState(
         "target_count": 1,
         "target_distance": 130,
         "wifi_rssi": -42,
+        "zone_1_presence": False,
+        "zone_1_target_counts": 0,
+        "zone_2_presence": True,
+        "zone_2_target_counts": 1,
+        "zone_3_presence": False,
+        "zone_3_target_counts": 0,
+        "zone_4_presence": False,
+        "zone_4_target_counts": 0,
     },
     children={
         "radar-1": UltraSubDeviceState(
             did="radar-1",
             name="Radar",
             type="Presence sensor",
-            fields={"envtemp": 24.0, "pir_detected": True, "power": True},
+            fields={"envtemp": 24.0, "presence": True, "power": True},
         )
     },
     updated_at=dt_util.utcnow(),
@@ -71,6 +87,7 @@ def mock_linknlink_client() -> Generator[AsyncMock]:
         ),
     ):
         client = client_class.return_value
+        client.discover_host.return_value = DEVICE
         client.connect.return_value = SESSION
         client.refresh.return_value = STATE
         yield client
@@ -91,7 +108,7 @@ def mock_config_entry() -> MockConfigEntry:
     """Return a LinknLink config entry."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title="eMotion Ultra",
+        title=DISPLAY_MODEL_ULTRA2,
         data={CONF_HOST: HOST, CONF_MAC: MAC, CONF_PORT: PORT},
         unique_id=MAC,
     )

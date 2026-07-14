@@ -47,11 +47,11 @@ rules:
   reauthentication-flow:
     status: exempt
     comment: Local protocol authentication does not use user credentials and is renewed automatically.
-  test-coverage: todo
+  test-coverage: done
 
   # Gold
   devices: done
-  diagnostics: todo
+  diagnostics: done
   discovery-update-info: todo
   discovery: todo
   docs-data-update: done
@@ -69,8 +69,8 @@ rules:
   exception-translations: done
   icon-translations:
     status: exempt
-    comment: Entities use icons provided by their device classes.
-  reconfiguration-flow: todo
+    comment: The integration does not define custom entity icons.
+  reconfiguration-flow: done
   repair-issues:
     status: exempt
     comment: The integration does not raise repair issues.
