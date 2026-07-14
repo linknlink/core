@@ -1,0 +1,93 @@
+"""Tests for LinknLink setup."""
+
+from dataclasses import replace
+from unittest.mock import AsyncMock, MagicMock
+
+from aiolinknlink import DISPLAY_MODEL_ULTRA2, UltraConnectionError
+
+from homeassistant.components.linknlink.const import DOMAIN
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+
+from . import setup_integration
+from .conftest import DEVICE, MAC, SESSION
+
+from tests.common import MockConfigEntry
+
+
+async def test_setup_and_unload(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test setting up and unloading an entry."""
+    mock_linknlink_client.connect.return_value = replace(
+        SESSION, device=replace(DEVICE, model=DISPLAY_MODEL_ULTRA2)
+    )
+    await setup_integration(hass, mock_config_entry)
+
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    mock_linknlink_client.connect.assert_awaited_once()
+    subscription_class, subscription = mock_position_subscription
+    subscription_class.assert_called_once()
+    subscription.start.assert_awaited_once()
+    subscription.wait_confirmed.assert_awaited_once_with(60.0)
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, MAC)})
+    assert device is not None
+    assert device.model == DISPLAY_MODEL_ULTRA2
+    event_id = er.async_get(hass).async_get_entity_id(
+        "event", DOMAIN, f"{MAC}_target_position"
+    )
+    assert event_id is not None
+
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+    assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
+    subscription.stop.assert_awaited_once()
+    assert hass.states.get(event_id).state == STATE_UNAVAILABLE
+
+
+async def test_setup_retries_when_device_is_unavailable(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test setup retry when the device cannot be reached."""
+    mock_linknlink_client.connect.side_effect = UltraConnectionError("offline")
+    await setup_integration(hass, mock_config_entry)
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_setup_retries_when_subscription_is_not_confirmed(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test setup retry and socket cleanup after confirmation times out."""
+    _, subscription = mock_position_subscription
+    subscription.wait_confirmed.side_effect = TimeoutError
+
+    await setup_integration(hass, mock_config_entry)
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+    subscription.stop.assert_awaited_once()
+
+
+async def test_setup_retries_when_position_listener_fails(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test setup retry when the local UDP listener cannot start."""
+    _, subscription = mock_position_subscription
+    subscription.start.side_effect = OSError("cannot bind")
+
+    await setup_integration(hass, mock_config_entry)
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+    subscription.stop.assert_awaited_once()
