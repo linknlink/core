@@ -135,7 +135,7 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
         self._async_notify_config_listeners()
 
     async def async_set_radar_install_direction(self, install_direction: int) -> None:
-        """Set cable orientation and store the device-confirmed value."""
+        """Set installation direction and store the device-confirmed value."""
         subscription = self._radar_subscription()
         self.radar_status = await subscription.set_radar_install_direction(
             install_direction
