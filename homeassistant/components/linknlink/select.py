@@ -18,7 +18,7 @@ PARALLEL_UPDATES = 1
 
 LEVEL_OPTIONS = ["level_0", "level_1", "level_2"]
 INSTALL_MODE_OPTIONS = ["ceiling", "wall"]
-INSTALL_DIRECTION_OPTIONS = ["cable_up", "cable_down"]
+INSTALL_DIRECTION_OPTIONS = ["down", "up"]
 
 RADAR_SELECT_DESCRIPTIONS: tuple[SelectEntityDescription, ...] = (
     SelectEntityDescription(
@@ -75,36 +75,35 @@ class LinknLinkRadarSelect(LinknLinkEntity, SelectEntity):
         return (
             position_state is not None
             and position_state.subscribed
-            and self.current_option is not None
+            and self._current_value() is not None
         )
 
     @property
     @override
     def current_option(self) -> str | None:
         """Return the device-read radar configuration option."""
-        status = self.coordinator.radar_status
-        if status is None:
-            return None
-        value: int | None
-        match self.entity_description.key:
-            case "radar_sensitivity":
-                value = status.sensitivity
-            case "radar_trigger_speed":
-                value = status.trigger_speed
-            case "radar_install_mode":
-                value = status.install_mode
-            case "radar_install_direction":
-                value = (
-                    None
-                    if status.install_direction is None
-                    else int(status.install_direction != 0)
-                )
-            case _:
-                return None
+        value = self._current_value()
         options = self.entity_description.options
         if options is None or value is None or not 0 <= value < len(options):
             return None
         return options[value]
+
+    def _current_value(self) -> int | None:
+        """Return the raw device-read option value."""
+        status = self.coordinator.radar_status
+        if status is None:
+            return None
+        match self.entity_description.key:
+            case "radar_sensitivity":
+                return status.sensitivity
+            case "radar_trigger_speed":
+                return status.trigger_speed
+            case "radar_install_mode":
+                return status.install_mode
+            case "radar_install_direction":
+                return status.install_direction
+            case _:
+                return None
 
     @override
     async def async_select_option(self, option: str) -> None:

@@ -57,10 +57,10 @@
     },
     "select": {
       "radar_install_direction": {
-        "name": "Radar cable direction",
+        "name": "Radar installation direction",
         "state": {
-          "cable_down": "Cable down",
-          "cable_up": "Cable up"
+          "down": "Down",
+          "up": "Up"
         }
       },
       "radar_install_mode": {
