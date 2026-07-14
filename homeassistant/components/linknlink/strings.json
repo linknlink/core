@@ -54,6 +54,14 @@
           }
         }
       }
+    },
+    "sensor": {
+      "nearest_distance": {
+        "name": "Nearest target 3D distance"
+      },
+      "nearest_horizontal_distance": {
+        "name": "Nearest target horizontal distance"
+      }
     }
   },
   "exceptions": {
