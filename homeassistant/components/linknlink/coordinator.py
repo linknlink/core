@@ -135,11 +135,37 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
         self.radar_status = await subscription.set_radar_install_mode(install_mode)
         self._async_notify_config_listeners()
 
+    async def async_set_radar_height(self, height: int) -> None:
+        """Set installation height and store the device-confirmed value."""
+        subscription = self._radar_subscription()
+        self.radar_status = await subscription.set_radar_height(height)
+        self._async_notify_config_listeners()
+
     async def async_set_radar_install_direction(self, install_direction: int) -> None:
         """Set installation direction and store the device-confirmed value."""
         subscription = self._radar_subscription()
         self.radar_status = await subscription.set_radar_install_direction(
             install_direction
+        )
+        self._async_notify_config_listeners()
+
+    async def async_set_radar_z_range(self, minimum: float, maximum: float) -> None:
+        """Set the Z-axis range and store both device-confirmed limits."""
+        subscription = self._radar_subscription()
+        self.radar_status = await subscription.set_radar_z_range(minimum, maximum)
+        self._async_notify_config_listeners()
+
+    async def async_set_radar_default_absence_delay(self, seconds: int) -> None:
+        """Set the default absence delay and store the device-confirmed value."""
+        subscription = self._radar_subscription()
+        self.radar_status = await subscription.set_radar_default_absence_delay(seconds)
+        self._async_notify_config_listeners()
+
+    async def async_set_radar_zone_absence_delay(self, zone: int, seconds: int) -> None:
+        """Set a zone absence delay and store the device-confirmed value."""
+        subscription = self._radar_subscription()
+        self.radar_status = await subscription.set_radar_zone_absence_delay(
+            zone, seconds
         )
         self._async_notify_config_listeners()
 

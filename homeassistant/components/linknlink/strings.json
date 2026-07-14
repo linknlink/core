@@ -55,6 +55,32 @@
         }
       }
     },
+    "number": {
+      "radar_default_absence_delay": {
+        "name": "Default absence delay"
+      },
+      "radar_height": {
+        "name": "Radar installation height"
+      },
+      "radar_z_maximum": {
+        "name": "Radar maximum Z range"
+      },
+      "radar_z_minimum": {
+        "name": "Radar minimum Z range"
+      },
+      "radar_zone_1_absence_delay": {
+        "name": "Zone 1 absence delay"
+      },
+      "radar_zone_2_absence_delay": {
+        "name": "Zone 2 absence delay"
+      },
+      "radar_zone_3_absence_delay": {
+        "name": "Zone 3 absence delay"
+      },
+      "radar_zone_4_absence_delay": {
+        "name": "Zone 4 absence delay"
+      }
+    },
     "select": {
       "radar_install_direction": {
         "name": "Radar installation direction",

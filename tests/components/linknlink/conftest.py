@@ -101,7 +101,13 @@ def mock_position_subscription() -> Generator[tuple[MagicMock, MagicMock]]:
         subscription.set_radar_sensitivity = AsyncMock(return_value=RADAR_STATUS)
         subscription.set_radar_trigger_speed = AsyncMock(return_value=RADAR_STATUS)
         subscription.set_radar_install_mode = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_height = AsyncMock(return_value=RADAR_STATUS)
         subscription.set_radar_install_direction = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_z_range = AsyncMock(return_value=RADAR_STATUS)
+        subscription.set_radar_default_absence_delay = AsyncMock(
+            return_value=RADAR_STATUS
+        )
+        subscription.set_radar_zone_absence_delay = AsyncMock(return_value=RADAR_STATUS)
         yield subscription_class, subscription
 
 

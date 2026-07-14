@@ -3,9 +3,13 @@
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
-from aiolinknlink import UltraConnectionError
+from aiolinknlink import UltraConnectionError, UltraRadarZRange
 import pytest
 
+from homeassistant.components.linknlink.number import (
+    RADAR_NUMBER_DESCRIPTIONS,
+    LinknLinkRadarNumber,
+)
 from homeassistant.components.linknlink.select import (
     RADAR_SELECT_DESCRIPTIONS,
     RADAR_SENSITIVITY_DESCRIPTION,
@@ -60,10 +64,18 @@ async def test_event_entity_setup(
     } == {
         f"{MAC}_nearest_distance",
         f"{MAC}_nearest_horizontal_distance",
+        f"{MAC}_radar_default_absence_delay",
+        f"{MAC}_radar_height",
         f"{MAC}_radar_install_direction",
         f"{MAC}_radar_install_mode",
         f"{MAC}_radar_sensitivity",
         f"{MAC}_radar_trigger_speed",
+        f"{MAC}_radar_z_maximum",
+        f"{MAC}_radar_z_minimum",
+        f"{MAC}_radar_zone_1_absence_delay",
+        f"{MAC}_radar_zone_2_absence_delay",
+        f"{MAC}_radar_zone_3_absence_delay",
+        f"{MAC}_radar_zone_4_absence_delay",
         f"{MAC}_target_position",
     }
 
@@ -109,6 +121,107 @@ async def test_position_event_and_availability(
     status_callback(POSITION_STATE)
     await hass.async_block_till_done()
     assert hass.states.get(event_id).state != STATE_UNAVAILABLE
+
+
+async def test_radar_numbers(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test numeric radar configuration state, writes, and device read-backs."""
+    _, subscription = mock_position_subscription
+    subscription.set_radar_height.return_value = replace(RADAR_STATUS, height=250)
+    subscription.set_radar_z_range.return_value = replace(
+        RADAR_STATUS,
+        z_range=UltraRadarZRange(minimum=-1.5, maximum=2.0),
+    )
+    subscription.set_radar_default_absence_delay.return_value = replace(
+        RADAR_STATUS, default_absence_delay=75
+    )
+    subscription.set_radar_zone_absence_delay.return_value = replace(
+        RADAR_STATUS, zone_absence_delays=(60, 95, 120, 180)
+    )
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+
+    entity_ids = {
+        key: registry.async_get_entity_id("number", "linknlink", f"{MAC}_{key}")
+        for key in (
+            "radar_height",
+            "radar_z_minimum",
+            "radar_z_maximum",
+            "radar_default_absence_delay",
+            "radar_zone_1_absence_delay",
+            "radar_zone_2_absence_delay",
+            "radar_zone_3_absence_delay",
+            "radar_zone_4_absence_delay",
+        )
+    }
+    assert all(entity_ids.values())
+    assert hass.states.get(entity_ids["radar_height"]).state == "240"
+    assert hass.states.get(entity_ids["radar_z_minimum"]).state == "-2.0"
+    assert hass.states.get(entity_ids["radar_z_maximum"]).state == "2.0"
+    assert hass.states.get(entity_ids["radar_default_absence_delay"]).state == "60"
+    assert hass.states.get(entity_ids["radar_zone_2_absence_delay"]).state == "90"
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": entity_ids["radar_height"], "value": 250},
+        blocking=True,
+    )
+    subscription.set_radar_height.assert_awaited_once_with(250)
+    assert hass.states.get(entity_ids["radar_height"]).state == "250"
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": entity_ids["radar_z_minimum"], "value": -1.5},
+        blocking=True,
+    )
+    subscription.set_radar_z_range.assert_awaited_once_with(-1.5, 2.0)
+    assert hass.states.get(entity_ids["radar_z_minimum"]).state == "-1.5"
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": entity_ids["radar_default_absence_delay"], "value": 75},
+        blocking=True,
+    )
+    subscription.set_radar_default_absence_delay.assert_awaited_once_with(75)
+    assert hass.states.get(entity_ids["radar_default_absence_delay"]).state == "75"
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": entity_ids["radar_zone_2_absence_delay"], "value": 95},
+        blocking=True,
+    )
+    subscription.set_radar_zone_absence_delay.assert_awaited_once_with(2, 95)
+    assert hass.states.get(entity_ids["radar_zone_2_absence_delay"]).state == "95"
+
+
+async def test_radar_number_errors(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test invalid numeric values and device write failures."""
+    _, subscription = mock_position_subscription
+    await setup_integration(hass, mock_config_entry)
+    height = LinknLinkRadarNumber(
+        mock_config_entry.runtime_data,
+        RADAR_NUMBER_DESCRIPTIONS[0],
+    )
+
+    with pytest.raises(HomeAssistantError):
+        await height.async_set_native_value(1.5)
+
+    subscription.set_radar_height.side_effect = UltraConnectionError("offline")
+    with pytest.raises(HomeAssistantError):
+        await height.async_set_native_value(250)
 
 
 async def test_radar_sensitivity_select_and_recovery(
