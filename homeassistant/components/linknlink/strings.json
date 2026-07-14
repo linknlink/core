@@ -55,6 +55,38 @@
         }
       }
     },
+    "select": {
+      "radar_install_direction": {
+        "name": "Radar cable direction",
+        "state": {
+          "cable_down": "Cable down",
+          "cable_up": "Cable up"
+        }
+      },
+      "radar_install_mode": {
+        "name": "Radar installation mode",
+        "state": {
+          "ceiling": "Ceiling",
+          "wall": "Wall"
+        }
+      },
+      "radar_sensitivity": {
+        "name": "Radar sensitivity",
+        "state": {
+          "level_0": "Low",
+          "level_1": "Medium",
+          "level_2": "High"
+        }
+      },
+      "radar_trigger_speed": {
+        "name": "Radar trigger speed",
+        "state": {
+          "level_0": "Slow",
+          "level_1": "Medium",
+          "level_2": "Fast"
+        }
+      }
+    },
     "sensor": {
       "nearest_distance": {
         "name": "Nearest target 3D distance"
@@ -65,6 +97,12 @@
     }
   },
   "exceptions": {
+    "control_error": {
+      "message": "Unable to update the LinknLink device: {error}"
+    },
+    "invalid_radar_option": {
+      "message": "The selected radar configuration option is invalid."
+    },
     "update_error": {
       "message": "Error communicating with the LinknLink device: {error}"
     }

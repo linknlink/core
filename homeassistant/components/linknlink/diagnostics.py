@@ -13,6 +13,7 @@ TO_REDACT = {
     CONF_HOST,
     CONF_MAC,
     CONF_UNIQUE_ID,
+    "did",
     "id",
     "ip",
     "last_error",
@@ -33,6 +34,7 @@ async def async_get_config_entry_diagnostics(
                 "config_entry": entry.as_dict(),
                 "device": None,
                 "position_subscription": None,
+                "radar_status": None,
                 "last_update_success": False,
             },
             TO_REDACT,
@@ -44,6 +46,11 @@ async def async_get_config_entry_diagnostics(
             "position_subscription": (
                 asdict(coordinator.position_state)
                 if coordinator.position_state is not None
+                else None
+            ),
+            "radar_status": (
+                asdict(coordinator.radar_status)
+                if coordinator.radar_status is not None
                 else None
             ),
             "last_update_success": coordinator.last_update_success,

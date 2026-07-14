@@ -3,12 +3,21 @@
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
+from aiolinknlink import UltraConnectionError
+import pytest
+
+from homeassistant.components.linknlink.select import (
+    RADAR_SELECT_DESCRIPTIONS,
+    RADAR_SENSITIVITY_DESCRIPTION,
+    LinknLinkRadarSelect,
+)
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
 from . import setup_integration
-from .conftest import MAC, POSITION_STATE, POSITION_UPDATE
+from .conftest import MAC, POSITION_STATE, POSITION_UPDATE, RADAR_STATUS
 
 from tests.common import MockConfigEntry
 
@@ -51,6 +60,10 @@ async def test_event_entity_setup(
     } == {
         f"{MAC}_nearest_distance",
         f"{MAC}_nearest_horizontal_distance",
+        f"{MAC}_radar_install_direction",
+        f"{MAC}_radar_install_mode",
+        f"{MAC}_radar_sensitivity",
+        f"{MAC}_radar_trigger_speed",
         f"{MAC}_target_position",
     }
 
@@ -96,6 +109,165 @@ async def test_position_event_and_availability(
     status_callback(POSITION_STATE)
     await hass.async_block_till_done()
     assert hass.states.get(event_id).state != STATE_UNAVAILABLE
+
+
+async def test_radar_sensitivity_select_and_recovery(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test device-read sensitivity control and recovery refresh."""
+    subscription_class, subscription = mock_position_subscription
+    subscription.set_radar_sensitivity.return_value = replace(
+        RADAR_STATUS,
+        sensitivity=1,
+    )
+    await setup_integration(hass, mock_config_entry)
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "select",
+        "linknlink",
+        f"{MAC}_radar_sensitivity",
+    )
+    assert entity_id is not None
+    assert hass.states.get(entity_id).state == "level_2"
+
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": entity_id, "option": "level_1"},
+        blocking=True,
+    )
+
+    subscription.set_radar_sensitivity.assert_awaited_once_with(1)
+    assert hass.states.get(entity_id).state == "level_1"
+
+    status_callback = subscription_class.call_args.kwargs["status_callback"]
+    status_callback(replace(POSITION_STATE, subscribed=False, last_error="offline"))
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+
+    subscription.get_radar_status.side_effect = UltraConnectionError("offline")
+    status_callback(POSITION_STATE)
+    await hass.async_block_till_done()
+    assert subscription.get_radar_status.await_count == 2
+    assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+
+    status_callback(replace(POSITION_STATE, subscribed=False, last_error="offline"))
+    await hass.async_block_till_done()
+    subscription.get_radar_status.side_effect = None
+    subscription.get_radar_status.return_value = RADAR_STATUS
+    status_callback(POSITION_STATE)
+    await hass.async_block_till_done()
+    assert subscription.get_radar_status.await_count == 3
+    assert hass.states.get(entity_id).state == "level_2"
+
+
+async def test_radar_sensitivity_select_errors(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test invalid options and device write failures."""
+    _, subscription = mock_position_subscription
+    await setup_integration(hass, mock_config_entry)
+    entity = LinknLinkRadarSelect(
+        mock_config_entry.runtime_data,
+        RADAR_SENSITIVITY_DESCRIPTION,
+    )
+
+    with pytest.raises(HomeAssistantError):
+        await entity.async_select_option("invalid")
+
+    subscription.set_radar_sensitivity.side_effect = UltraConnectionError("offline")
+    with pytest.raises(HomeAssistantError):
+        await entity.async_select_option("level_1")
+
+
+async def test_additional_radar_selects(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    mock_position_subscription: tuple[MagicMock, MagicMock],
+) -> None:
+    """Test trigger speed and installation select read-backs."""
+    _, subscription = mock_position_subscription
+    subscription.set_radar_trigger_speed.return_value = replace(
+        RADAR_STATUS, trigger_speed=2
+    )
+    subscription.set_radar_install_mode.return_value = replace(
+        RADAR_STATUS, install_mode=1
+    )
+    subscription.set_radar_install_direction.return_value = replace(
+        RADAR_STATUS, install_direction=0
+    )
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+
+    trigger_id = registry.async_get_entity_id(
+        "select", "linknlink", f"{MAC}_radar_trigger_speed"
+    )
+    mode_id = registry.async_get_entity_id(
+        "select", "linknlink", f"{MAC}_radar_install_mode"
+    )
+    direction_id = registry.async_get_entity_id(
+        "select", "linknlink", f"{MAC}_radar_install_direction"
+    )
+    assert trigger_id is not None
+    assert mode_id is not None
+    assert direction_id is not None
+    assert hass.states.get(trigger_id).state == "level_1"
+    assert hass.states.get(mode_id).state == "ceiling"
+    assert hass.states.get(direction_id).state == "cable_down"
+
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": trigger_id, "option": "level_2"},
+        blocking=True,
+    )
+    subscription.set_radar_trigger_speed.assert_awaited_once_with(2)
+    assert hass.states.get(trigger_id).state == "level_2"
+
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": mode_id, "option": "wall"},
+        blocking=True,
+    )
+    subscription.set_radar_install_mode.assert_awaited_once_with(1)
+    assert hass.states.get(mode_id).state == "wall"
+
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": direction_id, "option": "cable_up"},
+        blocking=True,
+    )
+    subscription.set_radar_install_direction.assert_awaited_once_with(0)
+    assert hass.states.get(direction_id).state == "cable_up"
+
+
+async def test_install_direction_sentinel_is_normalized(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Treat the firmware's unconfigured nonzero sentinel as cable down."""
+    await setup_integration(hass, mock_config_entry)
+    coordinator = mock_config_entry.runtime_data
+    coordinator.radar_status = replace(RADAR_STATUS, install_direction=100)
+    entity = LinknLinkRadarSelect(
+        coordinator,
+        next(
+            description
+            for description in RADAR_SELECT_DESCRIPTIONS
+            if description.key == "radar_install_direction"
+        ),
+    )
+
+    assert entity.current_option == "cable_down"
 
 
 async def test_empty_position_event(

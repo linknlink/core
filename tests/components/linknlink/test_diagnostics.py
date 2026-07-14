@@ -29,6 +29,7 @@ async def test_diagnostics_while_setup_is_pending(
     assert result["config_entry"]["data"]["host"] == "**REDACTED**"
     assert result["device"] is None
     assert result["position_subscription"] is None
+    assert result["radar_status"] is None
     assert result["last_update_success"] is False
 
 
@@ -54,7 +55,9 @@ async def test_diagnostics_are_redacted(
     assert result["config_entry"]["unique_id"] == "**REDACTED**"
     assert result["device"]["ip"] == "**REDACTED**"
     assert result["device"]["mac"] == "**REDACTED**"
+    assert result["radar_status"]["did"] == "**REDACTED**"
     position = result["position_subscription"]["latest_update"]
     assert position["source_ip"] == "**REDACTED**"
     assert position["targets"] == "**REDACTED**"
     assert result["position_subscription"]["last_error"] == "**REDACTED**"
+    assert result["radar_status"]["sensitivity"] == 2
