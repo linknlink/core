@@ -332,7 +332,7 @@ async def test_additional_radar_selects(
     assert direction_id is not None
     assert hass.states.get(trigger_id).state == "level_1"
     assert hass.states.get(mode_id).state == "ceiling"
-    assert hass.states.get(direction_id).state == "cable_down"
+    assert hass.states.get(direction_id).state == "up"
 
     await hass.services.async_call(
         "select",
@@ -355,19 +355,19 @@ async def test_additional_radar_selects(
     await hass.services.async_call(
         "select",
         "select_option",
-        {"entity_id": direction_id, "option": "cable_up"},
+        {"entity_id": direction_id, "option": "down"},
         blocking=True,
     )
     subscription.set_radar_install_direction.assert_awaited_once_with(0)
-    assert hass.states.get(direction_id).state == "cable_up"
+    assert hass.states.get(direction_id).state == "down"
 
 
-async def test_install_direction_sentinel_is_normalized(
+async def test_install_direction_sentinel_is_not_reported_as_valid(
     hass: HomeAssistant,
     mock_linknlink_client: AsyncMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Treat the firmware's unconfigured nonzero sentinel as cable down."""
+    """Keep an unconfigured firmware sentinel writable but report no option."""
     await setup_integration(hass, mock_config_entry)
     coordinator = mock_config_entry.runtime_data
     coordinator.radar_status = replace(RADAR_STATUS, install_direction=100)
@@ -380,7 +380,8 @@ async def test_install_direction_sentinel_is_normalized(
         ),
     )
 
-    assert entity.current_option == "cable_down"
+    assert entity.available
+    assert entity.current_option is None
 
 
 async def test_empty_position_event(
