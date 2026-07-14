@@ -53,6 +53,7 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
         self._position_listeners: set[PositionListener] = set()
         self._config_listeners: set[ConfigListener] = set()
         self._setup_complete = False
+        self._radar_refresh_pending = False
 
     @override
     async def _async_setup(self) -> None:
@@ -168,6 +169,8 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             previous.stale,
             previous.last_error,
         ) == (state.subscribed, state.stale, state.last_error):
+            if state.subscribed and self.radar_status is None:
+                self._async_schedule_radar_refresh()
             return
         if state.last_error and (previous is None or previous.subscribed):
             LOGGER.warning(
@@ -176,27 +179,36 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             )
         elif state.subscribed and previous is not None and not previous.subscribed:
             LOGGER.info("Ultra2 local position subscription is available")
-            if self._setup_complete:
-                self.config_entry.async_create_background_task(
-                    self.hass,
-                    self._async_refresh_radar_status(),
-                    "Refresh LinknLink radar configuration",
-                )
+            self._async_schedule_radar_refresh()
         if previous is not None and previous.subscribed and not state.subscribed:
             self.radar_status = None
             self._async_notify_config_listeners()
         for listener in self._position_listeners:
             listener(None)
 
+    @callback
+    def _async_schedule_radar_refresh(self) -> None:
+        """Schedule one radar refresh when no refresh is already pending."""
+        if not self._setup_complete or self._radar_refresh_pending:
+            return
+        self._radar_refresh_pending = True
+        self.config_entry.async_create_background_task(
+            self.hass,
+            self._async_refresh_radar_status(),
+            "Refresh LinknLink radar configuration",
+        )
+
     async def _async_refresh_radar_status(self) -> None:
         """Refresh radar configuration after a recovered subscription."""
-        if self.position_subscription is None:
-            return
         try:
+            if self.position_subscription is None:
+                return
             self.radar_status = await self.position_subscription.get_radar_status()
         except UltraError as err:
             LOGGER.warning("Unable to refresh Ultra2 radar configuration: %s", err)
             return
+        finally:
+            self._radar_refresh_pending = False
         self._async_notify_config_listeners()
 
     @callback
