@@ -136,22 +136,16 @@ class LinknLinkPositionSensor(LinknLinkEntity, SensorEntity):
     @property
     @override
     def available(self) -> bool:
-        """Return whether a fresh target position is available."""
+        """Return whether the target position subscription is available."""
         state = self.coordinator.position_state
-        return (
-            state is not None
-            and state.subscribed
-            and not state.stale
-            and state.latest_update is not None
-            and self.native_value is not None
-        )
+        return state is not None and state.subscribed
 
     @property
     @override
     def native_value(self) -> StateType:
         """Return the nearest target distance in meters."""
         state = self.coordinator.position_state
-        if state is None or state.latest_update is None:
+        if state is None or state.stale or state.latest_update is None:
             return None
         if self.entity_description.key == "nearest_horizontal_distance":
             return state.latest_update.nearest_horizontal_distance

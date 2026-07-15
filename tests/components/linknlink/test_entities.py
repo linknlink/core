@@ -15,7 +15,7 @@ from homeassistant.components.linknlink.select import (
     RADAR_SENSITIVITY_DESCRIPTION,
     LinknLinkRadarSelect,
 )
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -447,7 +447,7 @@ async def test_position_event_and_expiry(
     status_callback(replace(POSITION_STATE, stale=True))
     await hass.async_block_till_done()
 
-    assert hass.states.get(horizontal_distance_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(horizontal_distance_id).state == STATE_UNKNOWN
 
     status_callback(replace(POSITION_STATE, subscribed=False, stale=False))
     await hass.async_block_till_done()
@@ -472,8 +472,8 @@ async def test_empty_position_update_clears_distances(
     position_callback(empty_update)
     await hass.async_block_till_done()
 
-    assert hass.states.get(horizontal_distance_id).state == STATE_UNAVAILABLE
-    assert hass.states.get(distance_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(horizontal_distance_id).state == STATE_UNKNOWN
+    assert hass.states.get(distance_id).state == STATE_UNKNOWN
     event_state = hass.states.get(event_id)
     assert event_state is not None
     assert event_state.attributes["target_count"] == 0
