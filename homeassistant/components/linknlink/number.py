@@ -1,4 +1,4 @@
-"""Radar configuration numbers for LinknLink eMotion Ultra2."""
+"""Radar configuration numbers for LinknLink eMotion Ultra."""
 
 from typing import override
 
@@ -98,7 +98,7 @@ async def async_setup_entry(
 
 
 class LinknLinkRadarNumber(LinknLinkEntity, NumberEntity):
-    """Configure one Ultra2 radar number with a device read-back."""
+    """Configure one Ultra radar number with a device read-back."""
 
     entity_description: NumberEntityDescription
 
