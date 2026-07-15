@@ -3,9 +3,7 @@ rules:
   action-setup:
     status: exempt
     comment: The integration does not provide custom actions.
-  appropriate-polling:
-    status: exempt
-    comment: The integration uses a local push subscription and does not poll.
+  appropriate-polling: done
   brands: done
   common-modules: done
   config-flow-test-coverage: done
@@ -82,5 +80,5 @@ rules:
   async-dependency: done
   inject-websession:
     status: exempt
-    comment: The integration communicates over UDP and does not use HTTP.
+    comment: The integration communicates over local UDP and TCP and does not use HTTP.
   strict-typing: done
