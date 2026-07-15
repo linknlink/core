@@ -5,7 +5,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DISPLAY_MODEL, DOMAIN
 from .coordinator import LinknLinkCoordinator
 
 
@@ -28,7 +28,7 @@ class LinknLinkEntity(CoordinatorEntity[LinknLinkCoordinator]):
             connections={(dr.CONNECTION_NETWORK_MAC, device.mac)},
             identifiers={(DOMAIN, device.id)},
             manufacturer="LinknLink",
-            model=device.model,
-            name=device.name,
+            model=DISPLAY_MODEL,
+            name=DISPLAY_MODEL,
             serial_number=device.mac,
         )

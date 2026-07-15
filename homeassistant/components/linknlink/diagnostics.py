@@ -14,6 +14,7 @@ TO_REDACT = {
     CONF_MAC,
     CONF_UNIQUE_ID,
     "did",
+    "device_id",
     "id",
     "ip",
     "last_error",
@@ -34,6 +35,8 @@ async def async_get_config_entry_diagnostics(
                 "config_entry": entry.as_dict(),
                 "device": None,
                 "position_subscription": None,
+                "environment_state": None,
+                "environment_available": False,
                 "radar_status": None,
                 "last_update_success": False,
             },
@@ -48,6 +51,17 @@ async def async_get_config_entry_diagnostics(
                 if coordinator.position_state is not None
                 else None
             ),
+            "environment_state": (
+                {
+                    **asdict(coordinator.environment_state),
+                    "available_fields": sorted(
+                        coordinator.environment_state.available_fields
+                    ),
+                }
+                if coordinator.environment_state is not None
+                else None
+            ),
+            "environment_available": coordinator.environment_available,
             "radar_status": (
                 asdict(coordinator.radar_status)
                 if coordinator.radar_status is not None

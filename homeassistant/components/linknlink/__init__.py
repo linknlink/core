@@ -10,6 +10,7 @@ from .const import DEFAULT_PORT, DISPLAY_MODEL, DOMAIN
 from .coordinator import LinknLinkConfigEntry, LinknLinkCoordinator
 
 PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
     Platform.EVENT,
     Platform.NUMBER,
     Platform.SELECT,
@@ -35,6 +36,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: LinknLinkConfigEntry) ->
     coordinator = LinknLinkCoordinator(hass, entry, client, device)
 
     await coordinator.async_config_entry_first_refresh()
+    device.name = DISPLAY_MODEL
+    device.model = DISPLAY_MODEL
     entry.runtime_data = coordinator
 
     dr.async_get(hass).async_get_or_create(
