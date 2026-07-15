@@ -66,11 +66,7 @@ class LinknLinkOccupancySensor(LinknLinkEntity, BinarySensorEntity):
     def available(self) -> bool:
         """Return whether a current occupancy source is available."""
         state = self.coordinator.environment_state
-        if (
-            self.coordinator.environment_available
-            and state is not None
-            and self.entity_description.key in state.values
-        ):
+        if self.coordinator.environment_available and state is not None:
             return True
         if self.entity_description.key != "occupancy":
             return False
