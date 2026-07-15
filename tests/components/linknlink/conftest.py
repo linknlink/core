@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiolinknlink import (
-    DISPLAY_MODEL_ULTRA2,
     TYPE_ULTRA2,
     UltraDevice,
     UltraPositionSubscriptionState,
@@ -17,7 +16,7 @@ from aiolinknlink import (
 )
 import pytest
 
-from homeassistant.components.linknlink.const import DOMAIN
+from homeassistant.components.linknlink.const import DISPLAY_MODEL, DOMAIN
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
 
 from tests.common import MockConfigEntry
@@ -32,8 +31,8 @@ DEVICE = UltraDevice(
     port=PORT,
     mac=MAC,
     type_id=TYPE_ULTRA2,
-    name=DISPLAY_MODEL_ULTRA2,
-    model=DISPLAY_MODEL_ULTRA2,
+    name=DISPLAY_MODEL,
+    model=DISPLAY_MODEL,
 )
 SESSION = UltraSession(
     device=DEVICE,
@@ -126,7 +125,7 @@ def mock_config_entry() -> MockConfigEntry:
     """Return a LinknLink config entry."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title=DISPLAY_MODEL_ULTRA2,
+        title=DISPLAY_MODEL,
         data={CONF_HOST: HOST, CONF_MAC: MAC, CONF_PORT: PORT},
         unique_id=MAC,
     )

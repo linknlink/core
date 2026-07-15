@@ -3,10 +3,10 @@
 from dataclasses import replace
 from unittest.mock import AsyncMock
 
-from aiolinknlink import DISPLAY_MODEL_ULTRA2, UltraConnectionError
+from aiolinknlink import UltraConnectionError
 import pytest
 
-from homeassistant.components.linknlink.const import DOMAIN
+from homeassistant.components.linknlink.const import DISPLAY_MODEL, DOMAIN
 from homeassistant.config_entries import SOURCE_RECONFIGURE, SOURCE_USER
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -21,7 +21,7 @@ from tests.common import MockConfigEntry
 async def test_full_flow(hass: HomeAssistant, mock_linknlink_client: AsyncMock) -> None:
     """Test the complete user flow."""
     mock_linknlink_client.connect.return_value = replace(
-        SESSION, device=replace(DEVICE, model=DISPLAY_MODEL_ULTRA2)
+        SESSION, device=replace(DEVICE, model=DISPLAY_MODEL)
     )
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -36,7 +36,7 @@ async def test_full_flow(hass: HomeAssistant, mock_linknlink_client: AsyncMock) 
     )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == DISPLAY_MODEL_ULTRA2
+    assert result["title"] == DISPLAY_MODEL
     assert result["data"] == {CONF_HOST: HOST, CONF_MAC: MAC, CONF_PORT: PORT}
     assert result["result"].unique_id == MAC
     mock_linknlink_client.discover_host.assert_awaited_once_with(HOST)
@@ -49,7 +49,7 @@ async def test_hostname_is_resolved_before_storage(
     mock_linknlink_client: AsyncMock,
 ) -> None:
     """Test that a hostname is accepted but the device IPv4 address is stored."""
-    hostname = "ultra2.local"
+    hostname = "ultra.local"
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -174,7 +174,7 @@ async def test_reconfigure(
 
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
-    assert result["description_placeholders"] == {"device_name": DISPLAY_MODEL_ULTRA2}
+    assert result["description_placeholders"] == {"device_name": DISPLAY_MODEL}
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_HOST: new_host}

@@ -1,4 +1,4 @@
-"""Coordinator for LinknLink eMotion Ultra2 local position updates."""
+"""Coordinator for LinknLink eMotion Ultra local position updates."""
 
 from collections.abc import Callable
 from typing import override
@@ -26,7 +26,7 @@ type ConfigListener = Callable[[], None]
 
 
 class LinknLinkCoordinator(DataUpdateCoordinator[None]):
-    """Manage one Ultra2 DNA session and local position subscription."""
+    """Manage one Ultra DNA session and local position subscription."""
 
     config_entry: LinknLinkConfigEntry
 
@@ -74,7 +74,7 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             try:
                 self.radar_status = await self.position_subscription.get_radar_status()
             except UltraError as err:
-                LOGGER.warning("Unable to read Ultra2 radar configuration: %s", err)
+                LOGGER.warning("Unable to read Ultra radar configuration: %s", err)
             self._setup_complete = True
         except (OSError, TimeoutError, UltraError, ValueError) as err:
             if self.position_subscription is not None:
@@ -200,11 +200,11 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             return
         if state.last_error and (previous is None or previous.subscribed):
             LOGGER.warning(
-                "Ultra2 local position subscription is unavailable: %s",
+                "Ultra local position subscription is unavailable: %s",
                 state.last_error,
             )
         elif state.subscribed and previous is not None and not previous.subscribed:
-            LOGGER.info("Ultra2 local position subscription is available")
+            LOGGER.info("Ultra local position subscription is available")
             self._async_schedule_radar_refresh()
         if previous is not None and previous.subscribed and not state.subscribed:
             self.radar_status = None
@@ -231,7 +231,7 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
                 return
             self.radar_status = await self.position_subscription.get_radar_status()
         except UltraError as err:
-            LOGGER.warning("Unable to refresh Ultra2 radar configuration: %s", err)
+            LOGGER.warning("Unable to refresh Ultra radar configuration: %s", err)
             return
         finally:
             self._radar_refresh_pending = False

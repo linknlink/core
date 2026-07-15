@@ -15,7 +15,7 @@
           "host": "[%key:common::config_flow::data::host%]"
         },
         "data_description": {
-          "host": "The new IP address or hostname of the eMotion Ultra2 device."
+          "host": "The new IP address or hostname of the eMotion Ultra device."
         },
         "description": "Update the network address for {device_name}."
       },
@@ -24,7 +24,7 @@
           "host": "[%key:common::config_flow::data::host%]"
         },
         "data_description": {
-          "host": "The IP address or hostname of the eMotion Ultra2 device."
+          "host": "The IP address or hostname of the eMotion Ultra device."
         },
         "description": "The device must already be connected to Wi-Fi and be reachable from Home Assistant on the same local network."
       }

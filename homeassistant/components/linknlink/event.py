@@ -1,4 +1,4 @@
-"""Event platform for LinknLink eMotion Ultra2 target positions."""
+"""Event platform for LinknLink eMotion Ultra target positions."""
 
 from typing import override
 
@@ -27,7 +27,7 @@ async def async_setup_entry(
     entry: LinknLinkConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the Ultra2 target-position event entity."""
+    """Set up the Ultra target-position event entity."""
     async_add_entities(
         [LinknLinkPositionEvent(entry.runtime_data, POSITION_EVENT_DESCRIPTION)]
     )
