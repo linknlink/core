@@ -109,21 +109,11 @@ async def async_setup_entry(
         LinknLinkPositionSensor(entry.runtime_data, description)
         for description in POSITION_SENSOR_DESCRIPTIONS
     )
-    coordinator = entry.runtime_data
-    available_fields = (
-        coordinator.environment_state.available_fields
-        if coordinator.environment_state is not None
-        else frozenset()
-    )
     async_add_entities(
-        LinknLinkEnvironmentSensor(coordinator, description)
+        LinknLinkEnvironmentSensor(entry.runtime_data, description)
         for description in (
             *ENVIRONMENT_SENSOR_DESCRIPTIONS,
-            *(
-                description
-                for description in ZONE_COUNT_SENSOR_DESCRIPTIONS
-                if description.key in available_fields
-            ),
+            *ZONE_COUNT_SENSOR_DESCRIPTIONS,
         )
     )
 
@@ -186,7 +176,11 @@ class LinknLinkEnvironmentSensor(LinknLinkEntity, SensorEntity):
             ):
                 return True
         state = self.coordinator.environment_state
-        return self.coordinator.environment_available and state is not None
+        if not self.coordinator.environment_available or state is None:
+            return False
+        if self.entity_description.key in {"temperature", "humidity"}:
+            return self.entity_description.key in state.available_fields
+        return True
 
     @property
     @override

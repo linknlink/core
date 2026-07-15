@@ -91,8 +91,11 @@ async def test_position_entities(
         f"{MAC}_wifi_signal",
         f"{MAC}_zone_1_presence",
         f"{MAC}_zone_1_target_counts",
+        f"{MAC}_zone_2_presence",
         f"{MAC}_zone_2_target_counts",
+        f"{MAC}_zone_3_presence",
         f"{MAC}_zone_3_target_counts",
+        f"{MAC}_zone_4_presence",
         f"{MAC}_zone_4_target_counts",
     }
 
@@ -125,12 +128,12 @@ async def test_environment_and_occupancy_entities(
         assert entity_id is not None
         assert hass.states.get(entity_id).state == expected
 
-    assert (
-        registry.async_get_entity_id(
-            "binary_sensor", "linknlink", f"{MAC}_zone_2_presence"
+    for zone in range(2, 5):
+        entity_id = registry.async_get_entity_id(
+            "binary_sensor", "linknlink", f"{MAC}_zone_{zone}_presence"
         )
-        is None
-    )
+        assert entity_id is not None
+        assert hass.states.get(entity_id).state == STATE_UNKNOWN
     assert mock_config_entry.runtime_data.environment_state is ENVIRONMENT_STATE
 
 
@@ -188,6 +191,55 @@ async def test_missing_environment_values_are_unknown(
         entity_id = registry.async_get_entity_id(domain, "linknlink", f"{MAC}_{key}")
         assert entity_id is not None
         assert hass.states.get(entity_id).state == STATE_UNKNOWN
+
+
+async def test_missing_optional_sensor_cable_is_unavailable(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test optional temperature and humidity hardware availability."""
+    missing_keys = {"temperature", "humidity"}
+    mock_linknlink_client.get_environment_state.return_value = replace(
+        ENVIRONMENT_STATE,
+        values={
+            key: value
+            for key, value in ENVIRONMENT_STATE.values.items()
+            if key not in missing_keys
+        },
+        available_fields=ENVIRONMENT_STATE.available_fields - missing_keys,
+    )
+
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+
+    for key in missing_keys:
+        entity_id = registry.async_get_entity_id("sensor", "linknlink", f"{MAC}_{key}")
+        assert entity_id is not None
+        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+
+
+async def test_entities_registered_when_initial_environment_read_fails(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test stable entities when the environment API is initially offline."""
+    mock_linknlink_client.get_environment_state.side_effect = UltraConnectionError(
+        "offline"
+    )
+
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+
+    for domain, key in (
+        ("sensor", "temperature"),
+        ("sensor", "zone_4_target_counts"),
+        ("binary_sensor", "zone_4_presence"),
+    ):
+        entity_id = registry.async_get_entity_id(domain, "linknlink", f"{MAC}_{key}")
+        assert entity_id is not None
+        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
 
 
 async def test_radar_sensitivity_select_and_recovery(
