@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
 from homeassistant.helpers import device_registry as dr
 
-from .const import DEFAULT_PORT, DOMAIN, LOGGER
+from .const import DEFAULT_PORT, DISPLAY_MODEL, DOMAIN, LOGGER
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -59,7 +59,7 @@ class LinknLinkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                 )
                 return self.async_create_entry(
-                    title=session.device.model,
+                    title=DISPLAY_MODEL,
                     data={
                         CONF_HOST: session.device.ip,
                         CONF_MAC: mac,

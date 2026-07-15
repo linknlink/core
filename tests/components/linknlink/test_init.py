@@ -3,10 +3,10 @@
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
-from aiolinknlink import DISPLAY_MODEL_ULTRA2, UltraConnectionError, UltraError
+from aiolinknlink import UltraConnectionError, UltraError
 import pytest
 
-from homeassistant.components.linknlink.const import DOMAIN
+from homeassistant.components.linknlink.const import DISPLAY_MODEL, DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -17,6 +17,24 @@ from .conftest import DEVICE, MAC, SESSION
 from tests.common import MockConfigEntry
 
 
+async def test_setup_updates_previous_display_name(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test updating an entry created with the previous display name."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="eMotion Ultra2",
+        data=mock_config_entry.data,
+        unique_id=mock_config_entry.unique_id,
+    )
+
+    await setup_integration(hass, entry)
+
+    assert entry.title == DISPLAY_MODEL
+
+
 async def test_setup_and_unload(
     hass: HomeAssistant,
     mock_linknlink_client: AsyncMock,
@@ -25,7 +43,7 @@ async def test_setup_and_unload(
 ) -> None:
     """Test setting up and unloading an entry."""
     mock_linknlink_client.connect.return_value = replace(
-        SESSION, device=replace(DEVICE, model=DISPLAY_MODEL_ULTRA2)
+        SESSION, device=replace(DEVICE, model=DISPLAY_MODEL)
     )
     await setup_integration(hass, mock_config_entry)
 
@@ -38,7 +56,7 @@ async def test_setup_and_unload(
     subscription.get_radar_status.assert_awaited_once()
     device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, MAC)})
     assert device is not None
-    assert device.model == DISPLAY_MODEL_ULTRA2
+    assert device.model == DISPLAY_MODEL
 
     coordinator = mock_config_entry.runtime_data
     assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
