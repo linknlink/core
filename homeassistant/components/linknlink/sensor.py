@@ -186,11 +186,7 @@ class LinknLinkEnvironmentSensor(LinknLinkEntity, SensorEntity):
             ):
                 return True
         state = self.coordinator.environment_state
-        return (
-            self.coordinator.environment_available
-            and state is not None
-            and self.entity_description.key in state.values
-        )
+        return self.coordinator.environment_available and state is not None
 
     @property
     @override

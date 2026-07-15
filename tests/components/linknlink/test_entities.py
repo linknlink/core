@@ -304,6 +304,37 @@ async def test_environment_failure_does_not_disable_position_entities(
     assert mock_config_entry.runtime_data.last_update_success
 
 
+async def test_missing_environment_values_are_unknown(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test missing values remain available with an unknown state."""
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+    missing_keys = {"temperature", "humidity", "zone_1_presence"}
+    mock_linknlink_client.get_environment_state.return_value = replace(
+        ENVIRONMENT_STATE,
+        values={
+            key: value
+            for key, value in ENVIRONMENT_STATE.values.items()
+            if key not in missing_keys
+        },
+    )
+
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    for domain, key in (
+        ("sensor", "temperature"),
+        ("sensor", "humidity"),
+        ("binary_sensor", "zone_1_presence"),
+    ):
+        entity_id = registry.async_get_entity_id(domain, "linknlink", f"{MAC}_{key}")
+        assert entity_id is not None
+        assert hass.states.get(entity_id).state == STATE_UNKNOWN
+
+
 async def test_radar_sensitivity_select_and_recovery(
     hass: HomeAssistant,
     mock_linknlink_client: AsyncMock,
