@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from aiolinknlink import (
     TYPE_ULTRA2,
     UltraDevice,
+    UltraEnvironmentState,
     UltraPositionSubscriptionState,
     UltraPositionUpdate,
     UltraRadarStatus,
@@ -64,6 +65,40 @@ RADAR_STATUS = UltraRadarStatus(
     default_absence_delay=60,
     zone_absence_delays=(60, 90, 120, 180),
 )
+ENVIRONMENT_STATE = UltraEnvironmentState(
+    device_id=MAC,
+    values={
+        "temperature": 23.5,
+        "humidity": 48.25,
+        "illuminance": 325.0,
+        "occupancy": True,
+        "target_count": 2,
+        "persons_in_fenced_zones": 0,
+        "wifi_signal": -52,
+        "zone_1_presence": False,
+        "zone_1_target_counts": 1,
+        "zone_2_target_counts": 0,
+        "zone_3_target_counts": 0,
+        "zone_4_target_counts": 0,
+    },
+    available_fields=frozenset(
+        {
+            "temperature",
+            "humidity",
+            "illuminance",
+            "occupancy",
+            "target_count",
+            "persons_in_fenced_zones",
+            "wifi_signal",
+            "zone_1_presence",
+            "zone_1_target_counts",
+            "zone_2_target_counts",
+            "zone_3_target_counts",
+            "zone_4_target_counts",
+        }
+    ),
+    received_at=datetime(2026, 7, 15, 12, tzinfo=UTC),
+)
 
 
 @pytest.fixture
@@ -82,6 +117,7 @@ def mock_linknlink_client() -> Generator[AsyncMock]:
         client = client_class.return_value
         client.discover_host.return_value = DEVICE
         client.connect.return_value = SESSION
+        client.get_environment_state.return_value = ENVIRONMENT_STATE
         yield client
 
 

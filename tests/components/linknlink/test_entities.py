@@ -15,13 +15,19 @@ from homeassistant.components.linknlink.select import (
     RADAR_SENSITIVITY_DESCRIPTION,
     LinknLinkRadarSelect,
 )
-from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
 from . import setup_integration
-from .conftest import MAC, POSITION_STATE, POSITION_UPDATE, RADAR_STATUS
+from .conftest import (
+    ENVIRONMENT_STATE,
+    MAC,
+    POSITION_STATE,
+    POSITION_UPDATE,
+    RADAR_STATUS,
+)
 
 from tests.common import MockConfigEntry
 
@@ -63,6 +69,10 @@ async def test_position_entities(
     } == {
         f"{MAC}_nearest_horizontal_distance",
         f"{MAC}_nearest_distance",
+        f"{MAC}_humidity",
+        f"{MAC}_illuminance",
+        f"{MAC}_occupancy",
+        f"{MAC}_persons_in_fenced_zones",
         f"{MAC}_radar_default_absence_delay",
         f"{MAC}_radar_height",
         f"{MAC}_radar_install_direction",
@@ -76,7 +86,77 @@ async def test_position_entities(
         f"{MAC}_radar_zone_3_absence_delay",
         f"{MAC}_radar_zone_4_absence_delay",
         f"{MAC}_target_position",
+        f"{MAC}_target_count",
+        f"{MAC}_temperature",
+        f"{MAC}_wifi_signal",
+        f"{MAC}_zone_1_presence",
+        f"{MAC}_zone_1_target_counts",
+        f"{MAC}_zone_2_target_counts",
+        f"{MAC}_zone_3_target_counts",
+        f"{MAC}_zone_4_target_counts",
     }
+
+
+async def test_environment_and_occupancy_entities(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test standard environment, count, and occupancy entities."""
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+
+    expected_states = {
+        ("sensor", "temperature"): "23.5",
+        ("sensor", "humidity"): "48.25",
+        ("sensor", "illuminance"): "325.0",
+        ("sensor", "wifi_signal"): "-52",
+        ("sensor", "target_count"): "1",
+        ("sensor", "persons_in_fenced_zones"): "0",
+        ("sensor", "zone_1_target_counts"): "1",
+        ("sensor", "zone_2_target_counts"): "0",
+        ("sensor", "zone_3_target_counts"): "0",
+        ("sensor", "zone_4_target_counts"): "0",
+        ("binary_sensor", "occupancy"): STATE_ON,
+        ("binary_sensor", "zone_1_presence"): STATE_OFF,
+    }
+    for (domain, key), expected in expected_states.items():
+        entity_id = registry.async_get_entity_id(domain, "linknlink", f"{MAC}_{key}")
+        assert entity_id is not None
+        assert hass.states.get(entity_id).state == expected
+
+    assert (
+        registry.async_get_entity_id(
+            "binary_sensor", "linknlink", f"{MAC}_zone_2_presence"
+        )
+        is None
+    )
+    assert mock_config_entry.runtime_data.environment_state is ENVIRONMENT_STATE
+
+
+async def test_environment_failure_does_not_disable_position_entities(
+    hass: HomeAssistant,
+    mock_linknlink_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test independent availability for the slow local state API."""
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+    temperature_id = registry.async_get_entity_id(
+        "sensor", "linknlink", f"{MAC}_temperature"
+    )
+    horizontal_id, _, _ = _position_entity_ids(hass)
+    assert temperature_id is not None
+
+    mock_linknlink_client.get_environment_state.side_effect = UltraConnectionError(
+        "offline"
+    )
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert hass.states.get(temperature_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(horizontal_id).state == "0.5"
+    assert mock_config_entry.runtime_data.last_update_success
 
 
 async def test_radar_sensitivity_select_and_recovery(

@@ -6,6 +6,7 @@ from typing import override
 from aiolinknlink import (
     UltraClient,
     UltraDevice,
+    UltraEnvironmentState,
     UltraError,
     UltraPositionSubscription,
     UltraPositionSubscriptionState,
@@ -18,7 +19,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, LOGGER, POSITION_SUBSCRIPTION_CONFIRM_TIMEOUT
+from .const import (
+    DOMAIN,
+    ENVIRONMENT_UPDATE_INTERVAL,
+    LOGGER,
+    POSITION_SUBSCRIPTION_CONFIRM_TIMEOUT,
+)
 
 type LinknLinkConfigEntry = ConfigEntry[LinknLinkCoordinator]
 type PositionListener = Callable[[UltraPositionUpdate | None], None]
@@ -43,12 +49,15 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             logger=LOGGER,
             config_entry=config_entry,
             name=f"LinknLink {device.id}",
+            update_interval=ENVIRONMENT_UPDATE_INTERVAL,
         )
         self.client = client
         self.device = device
         self.session: UltraSession | None = None
         self.position_subscription: UltraPositionSubscription | None = None
         self.position_state: UltraPositionSubscriptionState | None = None
+        self.environment_state: UltraEnvironmentState | None = None
+        self.environment_available = False
         self.radar_status: UltraRadarStatus | None = None
         self._position_listeners: set[PositionListener] = set()
         self._config_listeners: set[ConfigListener] = set()
@@ -88,7 +97,21 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
 
     @override
     async def _async_update_data(self) -> None:
-        """Complete the coordinator's one-time initial refresh."""
+        """Refresh lower-frequency environmental and occupancy state."""
+        if self.session is None:
+            return
+        try:
+            self.environment_state = await self.client.get_environment_state(
+                self.session
+            )
+        except (OSError, TimeoutError, UltraError) as err:
+            if self.environment_available:
+                LOGGER.warning("Ultra environmental state is unavailable: %s", err)
+            else:
+                LOGGER.debug("Unable to read Ultra environmental state: %s", err)
+            self.environment_available = False
+            return
+        self.environment_available = True
 
     @callback
     def async_add_position_listener(

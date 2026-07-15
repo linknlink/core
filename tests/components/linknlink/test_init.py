@@ -49,6 +49,7 @@ async def test_setup_and_unload(
 
     assert mock_config_entry.state is ConfigEntryState.LOADED
     mock_linknlink_client.connect.assert_awaited_once()
+    mock_linknlink_client.get_environment_state.assert_awaited_once_with(SESSION)
     subscription_class, subscription = mock_position_subscription
     subscription_class.assert_called_once()
     subscription.start.assert_awaited_once()
