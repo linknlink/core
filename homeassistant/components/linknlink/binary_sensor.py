@@ -37,22 +37,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Ultra occupancy sensors."""
-    coordinator = entry.runtime_data
-    available_fields = (
-        coordinator.environment_state.available_fields
-        if coordinator.environment_state is not None
-        else frozenset()
-    )
     async_add_entities(
-        LinknLinkOccupancySensor(coordinator, description)
-        for description in (
-            OCCUPANCY_DESCRIPTION,
-            *(
-                description
-                for description in ZONE_OCCUPANCY_DESCRIPTIONS
-                if description.key in available_fields
-            ),
-        )
+        LinknLinkOccupancySensor(entry.runtime_data, description)
+        for description in (OCCUPANCY_DESCRIPTION, *ZONE_OCCUPANCY_DESCRIPTIONS)
     )
 
 
