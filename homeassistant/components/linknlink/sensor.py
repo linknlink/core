@@ -1,4 +1,4 @@
-"""Distance sensors for LinknLink eMotion Ultra2 target positions."""
+"""Distance sensors for LinknLink eMotion Ultra target positions."""
 
 from typing import override
 
@@ -43,7 +43,7 @@ async def async_setup_entry(
     entry: LinknLinkConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up Ultra2 position distance sensors."""
+    """Set up Ultra position distance sensors."""
     async_add_entities(
         LinknLinkPositionSensor(entry.runtime_data, description)
         for description in POSITION_SENSOR_DESCRIPTIONS
@@ -51,7 +51,7 @@ async def async_setup_entry(
 
 
 class LinknLinkPositionSensor(LinknLinkEntity, SensorEntity):
-    """Representation of an Ultra2 nearest-target distance."""
+    """Representation of an Ultra nearest-target distance."""
 
     entity_description: SensorEntityDescription
 

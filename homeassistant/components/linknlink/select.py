@@ -1,4 +1,4 @@
-"""Radar configuration selects for LinknLink eMotion Ultra2."""
+"""Radar configuration selects for LinknLink eMotion Ultra."""
 
 from typing import override
 
@@ -63,7 +63,7 @@ async def async_setup_entry(
 
 
 class LinknLinkRadarSelect(LinknLinkEntity, SelectEntity):
-    """Configure one Ultra2 radar enum with a device read-back."""
+    """Configure one Ultra radar enum with a device read-back."""
 
     entity_description: SelectEntityDescription
 
