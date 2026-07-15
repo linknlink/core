@@ -15,7 +15,7 @@ from homeassistant.components.linknlink.select import (
     RADAR_SENSITIVITY_DESCRIPTION,
     LinknLinkRadarSelect,
 )
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -127,8 +127,8 @@ async def test_position_event_and_availability(
 
     status_callback(replace(POSITION_STATE, stale=True))
     await hass.async_block_till_done()
-    assert hass.states.get(horizontal_id).state == STATE_UNAVAILABLE
-    assert hass.states.get(distance_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(horizontal_id).state == STATE_UNKNOWN
+    assert hass.states.get(distance_id).state == STATE_UNKNOWN
 
     status_callback(replace(POSITION_STATE, subscribed=False, last_error="offline"))
     await hass.async_block_till_done()
@@ -485,5 +485,5 @@ async def test_empty_position_event(
     assert event_state.attributes["targets"] == []
     assert event_state.attributes["nearest_horizontal_distance"] is None
     assert event_state.attributes["nearest_distance"] is None
-    assert hass.states.get(horizontal_id).state == STATE_UNAVAILABLE
-    assert hass.states.get(distance_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(horizontal_id).state == STATE_UNKNOWN
+    assert hass.states.get(distance_id).state == STATE_UNKNOWN
