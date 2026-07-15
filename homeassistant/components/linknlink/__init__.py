@@ -1,12 +1,12 @@
 """The LinknLink integration."""
 
-from aiolinknlink import DISPLAY_MODEL_ULTRA2, UltraClient, UltraDevice
+from aiolinknlink import UltraClient, UltraDevice
 
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import DEFAULT_PORT, DOMAIN
+from .const import DEFAULT_PORT, DISPLAY_MODEL, DOMAIN
 from .coordinator import LinknLinkConfigEntry, LinknLinkCoordinator
 
 PLATFORMS: list[Platform] = [Platform.EVENT]
@@ -15,21 +15,21 @@ PLATFORMS: list[Platform] = [Platform.EVENT]
 async def async_setup_entry(hass: HomeAssistant, entry: LinknLinkConfigEntry) -> bool:
     """Set up LinknLink from a config entry."""
     assert entry.unique_id is not None
+    if entry.title != DISPLAY_MODEL:
+        hass.config_entries.async_update_entry(entry, title=DISPLAY_MODEL)
     port = entry.data.get(CONF_PORT, DEFAULT_PORT)
     device = UltraDevice(
         id=entry.unique_id,
         ip=entry.data[CONF_HOST],
         port=port,
         mac=entry.data[CONF_MAC],
-        name=entry.title,
-        model=DISPLAY_MODEL_ULTRA2,
+        name=DISPLAY_MODEL,
+        model=DISPLAY_MODEL,
     )
     client = UltraClient(default_port=port)
     coordinator = LinknLinkCoordinator(hass, entry, client, device)
 
     await coordinator.async_config_entry_first_refresh()
-    assert coordinator.session is not None
-    device.model = coordinator.session.device.model
     entry.runtime_data = coordinator
 
     dr.async_get(hass).async_get_or_create(

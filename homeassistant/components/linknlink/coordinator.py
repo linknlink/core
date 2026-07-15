@@ -1,4 +1,4 @@
-"""Coordinator for LinknLink eMotion Ultra2 local position updates."""
+"""Coordinator for LinknLink eMotion Ultra local position updates."""
 
 from collections.abc import Callable
 from typing import override
@@ -24,7 +24,7 @@ type PositionListener = Callable[[UltraPositionUpdate | None], None]
 
 
 class LinknLinkCoordinator(DataUpdateCoordinator[None]):
-    """Manage one Ultra2 DNA session and local position subscription."""
+    """Manage one Ultra DNA session and local position subscription."""
 
     config_entry: LinknLinkConfigEntry
 
@@ -115,11 +115,11 @@ class LinknLinkCoordinator(DataUpdateCoordinator[None]):
             return
         if state.last_error and (previous is None or previous.subscribed):
             LOGGER.warning(
-                "Ultra2 local position subscription is unavailable: %s",
+                "Ultra local position subscription is unavailable: %s",
                 state.last_error,
             )
         elif state.subscribed and previous is not None and not previous.subscribed:
-            LOGGER.info("Ultra2 local position subscription is available")
+            LOGGER.info("Ultra local position subscription is available")
         for listener in self._position_listeners:
             listener(None)
 
